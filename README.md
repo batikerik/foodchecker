@@ -1,53 +1,62 @@
-# FoodChecker
+# FoodChecker 🔬
 
-A mobile web app: take a photo of an ingredient list of anything (food, drinks, hair gel, baby formula, household chemicals) - and get a breakdown of the components, risks, contraindications, and a safety score from 0 to 100 tailored personally to you.
+**Point your phone at an ingredient list. Get back a breakdown you can actually read.**
 
-Your profile (allergies, conditions, pregnancy, etc.) is stored only in your phone's localStorage and is sent along with the photo so the score is personalized.
+FoodChecker is a mobile web app that turns the fine print on the back of a package
+into a clear verdict. Photograph the composition of anything — a chocolate bar, a
+hair gel, a bottle of floor cleaner, an infant formula, a supplement — and within
+seconds you get a safety score from 0 to 100, a plain-language summary, and a
+line-by-line reading of what each component is and why it's there.
 
-## What's where
+The point isn't a generic "is this bad for people." The point is *is this bad for
+you*. Fill in a short profile — age, allergies and intolerances, chronic
+conditions, pregnancy or breastfeeding, dietary restrictions — and the score is
+recalculated against it, with a dedicated "personally for you" section that calls
+out what matters in your case. A nut allergy turns an otherwise unremarkable
+granola bar red. Pregnancy changes the verdict on a retinol cream.
 
-```
-public/index.html   the entire interface (single file, no build step)
-lib/analyze.js      Gemini call + response schema + expert prompt
-api/analyze.js      serverless function for Vercel
-server.js           local server (static files + /api/analyze)
-```
+### What you get back
 
-## Running locally
+Every scan returns a structured report, not a wall of text:
 
-Dependencies are already installed. All you need is a key:
+- **A score from 0 to 100** with a verdict band — *good / acceptable / with caution / bad* — on a calibrated scale, where 85+ is a clean composition and anything under 15 contains banned or seriously harmful substances.
+- **A one-paragraph summary** in everyday language, no jargon.
+- **Each key ingredient**, tagged *safe / neutral / caution / dangerous*, with a sentence or two on what it is and why it's in there.
+- **The main concerns** with the composition as a whole.
+- **Who should avoid it, and who's fine** — the contraindications spelled out.
+- **Notes specific to your profile**, when you've filled one in.
 
-```powershell
-$env:GEMINI_API_KEY = "<your key>"
-npm run dev
-```
+If the photo is unreadable — glare, angle, a label that turns out not to be an
+ingredient list at all — it says so and tells you what to re-shoot, rather than
+inventing a plausible-looking answer.
 
-Open http://localhost:3000
+### How it works
 
-To avoid entering the key every time, save it once for your user account:
+A photo goes to Google's Gemini, guided by a system prompt that casts the model as
+a nutritionist, toxicologist and cosmetic chemist at once, and constrained by a
+JSON schema so the response is always the same shape. The scoring bands, the risk
+labels and the verdict values are all fixed by that schema — the model fills in the
+judgment, not the format. It reads labels in any language and answers in Russian.
 
-```powershell
-[Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "<твой ключ>", "User")
-```
+Sharp edges were taken seriously: the model name and reasoning depth are
+environment variables with automatic fallbacks if Google renames a model or
+rejects a thinking level; photos are downscaled in the browser to ~0.5 MB before
+upload so phone cameras don't blow past the request-size ceiling; and raw API
+errors are translated into something a human can act on ("your free quota ran out,
+wait a minute") instead of leaking a stack trace.
 
-After that, open a **new** PowerShell window (the old one still sees the old variables).
+### Privacy
 
-The camera in a mobile browser requires HTTPS or localhost. Over `http://<IP>:3000` on a local network, the "Take a photo" button may only open the gallery - for a full camera test it's easier to deploy (see below).
+Your profile never leaves your phone except as part of a scan. It lives in
+`localStorage` in your browser — there is no account, no database, no server-side
+storage of anything. Nothing is retained between scans.
 
-## Deploying to Vercel
+### The stack
 
-```sh
-npm i -g vercel
-vercel                          # first deploy, press Enter to accept the defaults
-vercel env add GEMINI_API_KEY   # paste the key, choose Production
-vercel --prod
-```
+No framework, no build step, no dependencies beyond the Gemini SDK. The entire
+interface is one hand-written HTML file — a dark, thumb-sized layout that installs
+to a phone home screen and behaves like a native app. The analysis logic is shared
+verbatim between a plain Node server for local use and a Vercel serverless
+function for deployment.
 
-You'll get an HTTPS link - open it on your phone and add it to your home screen ("Share" -> "Add to Home Screen"); it will behave like an app.
-
-## Settings
-
-- **Model:** `gemini-3.6-flash`. Changed via the `GEMINI_MODEL` environment variable without touching the code. If the model ever gets renamed, the app will automatically fall back to `gemini-flash-latest`.
-- **Prompt and scoring scale:** the `SYSTEM` constant in `lib/analyze.js`.
-- **Profile fields:** `FIELDS` in `public/index.html` + `profileToText` in `lib/analyze.js`.
-- **Thinking depth:** the `GEMINI_THINKING` variable, currently `high`. The set of allowed values depends on the model - for `gemini-3.6-flash` it's only `high` and `low`. If the model rejects the given level, the request is automatically retried without it.
+> Not medical advice. For anything serious about your health, see a doctor.
