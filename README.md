@@ -1,53 +1,53 @@
 # FoodChecker
 
-Мобильный веб-сайт: фотографируешь состав чего угодно (еда, напиток, гель для волос, детская смесь, бытовая химия) — получаешь разбор компонентов, риски, противопоказания и оценку безопасности от 0 до 100 лично для тебя.
+A mobile web app: take a photo of an ingredient list of anything (food, drinks, hair gel, baby formula, household chemicals) - and get a breakdown of the components, risks, contraindications, and a safety score from 0 to 100 tailored personally to you.
 
-Профиль (аллергии, болезни, беременность и т.п.) хранится только в localStorage телефона и отправляется вместе с фото, чтобы оценка была персональной.
+Your profile (allergies, conditions, pregnancy, etc.) is stored only in your phone's localStorage and is sent along with the photo so the score is personalized.
 
-## Что где
+## What's where
 
 ```
-public/index.html   весь интерфейс (один файл, без сборки)
-lib/analyze.js      вызов Gemini + схема ответа + промпт эксперта
-api/analyze.js      serverless-функция для Vercel
-server.js           локальный сервер (статика + /api/analyze)
+public/index.html   the entire interface (single file, no build step)
+lib/analyze.js      Gemini call + response schema + expert prompt
+api/analyze.js      serverless function for Vercel
+server.js           local server (static files + /api/analyze)
 ```
 
-## Запуск локально
+## Running locally
 
-Зависимости уже установлены. Нужен только ключ:
+Dependencies are already installed. All you need is a key:
 
 ```powershell
-$env:GEMINI_API_KEY = "<твой ключ>"
+$env:GEMINI_API_KEY = "<your key>"
 npm run dev
 ```
 
-Открыть http://localhost:3000
+Open http://localhost:3000
 
-Чтобы не вводить ключ каждый раз — сохранить его один раз для своего пользователя:
+To avoid entering the key every time, save it once for your user account:
 
 ```powershell
 [Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "<твой ключ>", "User")
 ```
 
-После этого открыть **новое** окно PowerShell (старое видит старые переменные).
+After that, open a **new** PowerShell window (the old one still sees the old variables).
 
-Камера в браузере на телефоне требует HTTPS или localhost. По `http://<IP>:3000` из локальной сети кнопка «Сфотографировать» может открывать только галерею — для полноценного теста с камерой проще задеплоить (ниже).
+The camera in a mobile browser requires HTTPS or localhost. Over `http://<IP>:3000` on a local network, the "Take a photo" button may only open the gallery - for a full camera test it's easier to deploy (see below).
 
-## Деплой на Vercel 
+## Deploying to Vercel
 
 ```sh
 npm i -g vercel
-vercel                          # первый деплой, отвечай Enter на дефолты
-vercel env add GEMINI_API_KEY   # вставить ключ, выбрать Production
+vercel                          # first deploy, press Enter to accept the defaults
+vercel env add GEMINI_API_KEY   # paste the key, choose Production
 vercel --prod
 ```
 
-Получишь HTTPS-ссылку — открывай на телефоне и добавляй на домашний экран («Поделиться» → «На экран "Домой"»), будет вести себя как приложение.
+You'll get an HTTPS link - open it on your phone and add it to your home screen ("Share" -> "Add to Home Screen"); it will behave like an app.
 
-## Настройки
+## Settings
 
-- **Модель:** `gemini-3.6-flash`. Меняется переменной окружения `GEMINI_MODEL` без правки кода. Если модель вдруг переименуют, приложение само переключится на `gemini-flash-latest`.
-- **Промпт и шкала оценок:** константа `SYSTEM` в `lib/analyze.js`.
-- **Поля профиля:** `FIELDS` в `public/index.html` + `profileToText` в `lib/analyze.js`.
-- **Глубина размышлений:** переменная `GEMINI_THINKING`, сейчас `high`. Набор допустимых значений зависит от модели — у `gemini-3.6-flash` это только `high` и `low`. Если модель не примет заданный уровень, запрос автоматически повторится без него.
+- **Model:** `gemini-3.6-flash`. Changed via the `GEMINI_MODEL` environment variable without touching the code. If the model ever gets renamed, the app will automatically fall back to `gemini-flash-latest`.
+- **Prompt and scoring scale:** the `SYSTEM` constant in `lib/analyze.js`.
+- **Profile fields:** `FIELDS` in `public/index.html` + `profileToText` in `lib/analyze.js`.
+- **Thinking depth:** the `GEMINI_THINKING` variable, currently `high`. The set of allowed values depends on the model - for `gemini-3.6-flash` it's only `high` and `low`. If the model rejects the given level, the request is automatically retried without it.
